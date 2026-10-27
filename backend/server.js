@@ -33,6 +33,7 @@ const bookingFormRoutes = require('./routes/bookingFormRoutes');
 const payoutStatementRoutes = require('./routes/payoutStatementRoutes');
 const uploadRoutes = require('./routes/uploadRoutes'); // NEW: Generic file upload (e.g. company logo)
 const dailyRecordRoutes = require('./routes/dailyRecordRoutes');
+const projectRoutes = require('./routes/projectRoutes'); // NEW: Project management
 
 const app = express();
 
@@ -135,8 +136,10 @@ app.use('/api', emiRoutes); // NEW: EMI plan & installments — MUST be mounted 
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/plots', plotRoutes);
+app.use('/api/projects', projectRoutes);
 app.use('/api/transactions', transactionRoutes);
 app.use('/api/commissions', commissionRoutes);
+app.use('/api/commission-ledger', require('./routes/commissionLedgerRoutes'));
 app.use('/api/wallets', walletRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/dashboard', dashboardRoutes);
@@ -153,7 +156,8 @@ app.use('/api/enquiries', enquiryRoutes); // NEW: Website enquiries (admin view)
 app.use('/api/booking-forms', bookingFormRoutes);
 app.use('/api/payout-statements', payoutStatementRoutes);
 app.use('/api/upload', uploadRoutes); // NEW: Generic file upload (company logo, etc.)
-app.use('/api/daily-records', dailyRecordRoutes); // NEW: Accounts Daily Records
+app.use('/api/daily-records', dailyRecordRoutes); // NEW: Accounts Daily Records (manual entry)
+app.use('/api/daily-reports', require('./routes/dailyReportRoutes')); // NEW: Daily Report submission & approval
 app.use('/uploads', express.static(require('path').join(__dirname, 'uploads'))); // NEW: serve uploaded logo/PDF files
 
 // ---------- PRODUCTION: Serve frontend build (if present) ----------
@@ -177,7 +181,7 @@ app.use((req, res) => {
 // Global error handler
 app.use(errorHandler);
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5001;
 
 const startServer = async () => {
   await connectDB();

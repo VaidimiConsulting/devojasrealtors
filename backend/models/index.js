@@ -19,8 +19,19 @@ const Enquiry = require('./Enquiry');
 const BookingForm = require('./BookingForm');
 const PayoutStatement = require('./PayoutStatement');
 const DailyRecord = require('./DailyRecord');
+const DailyReport = require('./DailyReport');
+const CommissionHistory = require('./CommissionHistory');
+const SmsLog = require('./SmsLog');
+const AuditLog = require('./AuditLog');
+const CommissionPayment = require('./CommissionPayment');
+
+const Project = require('./Project');
 
 // ---------- Associations ----------
+
+// Project <-> Plot
+Project.hasMany(Plot, { foreignKey: 'project_id', as: 'plots' });
+Plot.belongsTo(Project, { foreignKey: 'project_id', as: 'project' });
 
 // User <-> Plot (owner)
 User.hasMany(Plot, { foreignKey: 'owner_id', as: 'plots' });
@@ -42,7 +53,27 @@ User.hasMany(Transaction, { foreignKey: 'seller_id', as: 'sales' });
 // Commission relations
 Commission.belongsTo(Transaction, { foreignKey: 'transaction_id', as: 'transaction' });
 Commission.belongsTo(User, { foreignKey: 'user_id', as: 'earner' });
+Commission.belongsTo(User, { foreignKey: 'downline_user_id', as: 'downlineAssociate' });
 Transaction.hasMany(Commission, { foreignKey: 'transaction_id', as: 'commissions' });
+
+// CommissionPayment relations
+CommissionPayment.belongsTo(Commission, { foreignKey: 'commission_id', as: 'commission' });
+Commission.hasMany(CommissionPayment, { foreignKey: 'commission_id', as: 'payments' });
+CommissionPayment.belongsTo(User, { foreignKey: 'associate_id', as: 'associate' });
+CommissionPayment.belongsTo(User, { foreignKey: 'recorded_by', as: 'recordedByUser' });
+User.hasMany(CommissionPayment, { foreignKey: 'associate_id', as: 'commissionPayments' });
+
+// CommissionHistory relations
+CommissionHistory.belongsTo(User, { foreignKey: 'user_id', as: 'associate' });
+CommissionHistory.belongsTo(User, { foreignKey: 'changed_by', as: 'adminUser' });
+User.hasMany(CommissionHistory, { foreignKey: 'user_id', as: 'commissionHistories' });
+
+// SmsLog relations
+SmsLog.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
+
+// AuditLog relations
+AuditLog.belongsTo(User, { foreignKey: 'user_id', as: 'performer' });
+User.hasMany(AuditLog, { foreignKey: 'user_id', as: 'auditLogs' });
 
 // Wallet relations
 Wallet.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
@@ -83,6 +114,8 @@ BookingForm.belongsTo(User, { foreignKey: 'associate_id', as: 'associate' });
 User.hasMany(BookingForm, { foreignKey: 'associate_id', as: 'submittedForms' });
 
 BookingForm.belongsTo(User, { foreignKey: 'approved_by', as: 'approver' });
+BookingForm.belongsTo(Plot, { foreignKey: 'plot_id', as: 'plot' });
+BookingForm.belongsTo(User, { foreignKey: 'client_id', as: 'client' });
 
 // PayoutStatement relations
 PayoutStatement.belongsTo(User, { foreignKey: 'associate_id', as: 'associate' });
@@ -95,9 +128,15 @@ DailyRecord.belongsTo(User, { foreignKey: 'created_by', as: 'creator' });
 DailyRecord.belongsTo(User, { foreignKey: 'updated_by', as: 'updater' });
 User.hasMany(DailyRecord, { foreignKey: 'created_by', as: 'dailyRecords' });
 
+// DailyReport relations
+DailyReport.belongsTo(User, { foreignKey: 'submitted_by', as: 'submitter' });
+DailyReport.belongsTo(User, { foreignKey: 'reviewed_by', as: 'reviewer' });
+User.hasMany(DailyReport, { foreignKey: 'submitted_by', as: 'dailyReports' });
+
 module.exports = {
   sequelize,
   User,
+  Project,
   Plot,
   Transaction,
   Commission,
@@ -116,5 +155,10 @@ module.exports = {
   Enquiry,
   BookingForm,
   PayoutStatement,
-  DailyRecord
+  DailyRecord,
+  DailyReport,
+  CommissionHistory,
+  SmsLog,
+  AuditLog,
+  CommissionPayment
 };

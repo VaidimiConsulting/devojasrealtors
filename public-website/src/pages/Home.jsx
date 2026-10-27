@@ -77,7 +77,7 @@ export default function Home() {
     <div className="page-shell pb-16">
       <Hero />
 
-      <section className="relative -mt-10 z-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section className="relative mt-2 sm:-mt-10 z-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="glass-panel rounded-[2rem] p-5 sm:p-7 grid grid-cols-2 lg:grid-cols-4 gap-4 animate-fadeUp">
           {[
             ['100%', 'Verified Land'],

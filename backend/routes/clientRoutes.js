@@ -4,7 +4,7 @@ const {
   getDashboardStats, getMyPlots, createMyPlot, updateMyPlot, deleteMyPlot,
   browsePlots, getPlotDetail, getMyTransactions, updateProfile, changePassword,
   submitKyc, getMyNotifications, markNotificationRead, createComplaint, getMyComplaints,
-  getMyReceipt, getMyEmiSchedule, getMyBookingPdf
+  getMyReceipt, getMyEmiSchedule, getMyBookingPdf, getMyPaymentReceiptPdf
 } = require('../controllers/clientController');
 const { protect, authorize } = require('../middleware/auth');
 
@@ -25,6 +25,7 @@ router.get('/my-transactions', getMyTransactions);
 router.get('/transactions/:id/receipt', getMyReceipt);
 router.get('/transactions/:id/pdf', getMyBookingPdf);
 router.get('/transactions/:id/emi', getMyEmiSchedule);
+router.get('/payments/:id/receipt-pdf', getMyPaymentReceiptPdf);
 
 router.put('/profile', updateProfile);
 router.put('/change-password', changePassword);

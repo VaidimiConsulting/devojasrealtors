@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { Users, Plus, Search, Network, RefreshCw, X, AlertCircle, ChevronRight } from 'lucide-react';
 import api from '../../api/axios';
 import NetworkTreeNode from '../../components/NetworkTreeNode';
+import AssociateRegistrationForm from '../../components/AssociateRegistrationForm';
+import NetworkCounts from '../../components/NetworkCounts';
 import { useAuth } from '../../context/AuthContext';
 
 const emptyForm = {
@@ -25,8 +27,19 @@ const AssociateMyTeamNetwork = () => {
     setLoading(true);
     try {
       const res = await api.get('/associate/network');
-      setTree(res.data.data);
-      setTotalCount(res.data.totalCount);
+      const sanitizeNode = (node) => {
+        if (!node) return null;
+        const role = String(node.role || '').toLowerCase();
+        if (role && role !== 'associate' && role !== 'admin') return null;
+        return {
+          ...node,
+          children: (node.children || [])
+            .map(sanitizeNode)
+            .filter(Boolean)
+        };
+      };
+      setTree(sanitizeNode(res.data.data));
+      setTotalCount(res.data.totalCount || 0);
     } finally { setLoading(false); }
   };
 
@@ -70,10 +83,12 @@ const AssociateMyTeamNetwork = () => {
           </button>
           <button onClick={() => setModalOpen(true)} className="btn-gold flex items-center gap-2">
             <Plus size={16} />
-            Add Team Member
+            Add Associate
           </button>
         </div>
       </div>
+
+      <NetworkCounts refreshKey={String(modalOpen)} />
 
       {/* Success toast */}
       {success && (
@@ -144,7 +159,7 @@ const AssociateMyTeamNetwork = () => {
                   <Plus size={16} className="text-navy-dark" />
                 </div>
                 <div>
-                  <p className="font-bold text-white">Add Team Member</p>
+                  <p className="font-bold text-white">Add Associate</p>
                   <p className="text-[10px] text-slate-500">They will be placed under you in your network</p>
                 </div>
               </div>
@@ -153,68 +168,19 @@ const AssociateMyTeamNetwork = () => {
               </button>
             </div>
 
-            {/* Form */}
-            <div className="overflow-y-auto p-6 space-y-4">
-              {error && (
-                <div className="flex items-start gap-2.5 bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 text-red-400 text-sm">
-                  <AlertCircle size={15} className="shrink-0 mt-0.5" />
-                  {error}
-                </div>
-              )}
-
-              <div>
-                <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Full Name *</label>
-                <input required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  placeholder="Enter full name" className="input-field" />
-              </div>
-
-              <div>
-                <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Phone Number *</label>
-                <input required value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                  placeholder="10-digit mobile number" maxLength={10} className="input-field" />
-              </div>
-
-              <div>
-                <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Email (optional)</label>
-                <input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })}
-                  placeholder="their@email.com" className="input-field" />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">PAN Number *</label>
-                  <input required value={form.pan_number} onChange={(e) => setForm({ ...form, pan_number: e.target.value.toUpperCase() })}
-                    placeholder="ABCDE1234F" maxLength={10} className="input-field" />
-                </div>
-                <div>
-                  <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Aadhar Number *</label>
-                  <input required value={form.aadhar_number} onChange={(e) => setForm({ ...form, aadhar_number: e.target.value.replace(/\D/g, '') })}
-                    placeholder="12-digit" maxLength={12} className="input-field" />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Login Password *</label>
-                <input required type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })}
-                  placeholder="Set a login password for them" className="input-field" />
-              </div>
-
-              {/* Commission info — read only, set by admin */}
-              <div className="bg-amber-950/30 border border-amber-700/40 rounded-lg px-4 py-3">
-                <p className="text-[11px] font-bold text-amber-400 uppercase tracking-wider mb-1">Commission Rate</p>
-                <p className="text-xs text-slate-400">
-                  Commission % for this associate will be set by the <span className="text-amber-400 font-semibold">Admin</span> after approval. You cannot set or edit commission rates.
-                </p>
-              </div>
-            </div>
-
-            {/* Footer */}
-            <div className="px-6 py-4 border-t border-[#1e2f5a] flex gap-3">
-              <button onClick={() => setModalOpen(false)} className="btn-ghost flex-1">Cancel</button>
-              <button onClick={handleSubmit} disabled={submitting} className="btn-gold flex-1 flex items-center justify-center gap-2 disabled:opacity-60">
-                {submitting ? 'Adding...' : 'Add to My Team'}
-                {!submitting && <ChevronRight size={15} />}
-              </button>
+            {/* Shared registration form (same as public signup) – sponsor locked to logged-in associate */}
+            <div className="overflow-y-auto p-6 bg-white">
+              <AssociateRegistrationForm
+                endpoint="/associate/team"
+                sponsorValue={user?.login_id || ''}
+                sponsorLocked
+                sponsorLabel="Sponsor (You)"
+                intro="The new associate will be registered directly under you. Commission is set by Admin."
+                submitLabel="Register Associate"
+                doneLabel="Done"
+                onRegistered={() => fetchNetwork()}
+                onSuccess={() => setModalOpen(false)}
+              />
             </div>
           </div>
         </div>

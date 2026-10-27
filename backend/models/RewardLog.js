@@ -21,9 +21,18 @@ const RewardLog = sequelize.define('RewardLog', {
     type: DataTypes.INTEGER,
     allowNull: true
   },
+  month: {
+    type: DataTypes.STRING(7),
+    allowNull: true,
+    comment: 'Calendar month in YYYY-MM'
+  },
   reward_amount: {
     type: DataTypes.DECIMAL(15, 2),
     allowNull: false
+  },
+  status: {
+    type: DataTypes.ENUM('pending', 'paid'),
+    defaultValue: 'pending'
   }
 }, {
   tableName: 'reward_logs'

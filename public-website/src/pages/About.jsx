@@ -91,14 +91,20 @@ export default function About() {
     <div className="page-shell pt-24 space-y-20 pb-16">
       
       {/* 1. Page Title Header */}
-      <section className="page-hero py-20">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-brand-gold/20 via-transparent to-brand-dark/70 opacity-90" />
+      <section className="relative overflow-hidden bg-brand-navy py-20 sm:py-24 text-white">
+        <div
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat transform scale-105 transition-transform duration-1000 ease-out"
+          style={{ backgroundImage: "url('/assets/about_hero_plots.jpg')" }}
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-[#071A18]/75 via-[#0F2C2A]/60 to-[#071514]/85 pointer-events-none" />
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-4">
-          <span className="section-kicker !text-white !bg-white/10">
+          <span className="section-kicker !text-white !bg-white/10 backdrop-blur-md border-white/20">
             Leadership & Corporate Profile
           </span>
-          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold font-serif">About Devojas Realtors</h1>
-          <p className="text-sm sm:text-base text-white/70 max-w-2xl mx-auto">
+          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold font-serif drop-shadow-[0_2px_8px_rgba(0,0,0,0.6)]">
+            About Devojas Realtors
+          </h1>
+          <p className="text-sm sm:text-base text-slate-100 max-w-2xl mx-auto font-medium drop-shadow-[0_1px_4px_rgba(0,0,0,0.5)]">
             Varanasi's trusted name in residential plotting, led by experienced leadership and committed to 100% verified legal land assets.
           </p>
         </div>
@@ -136,7 +142,7 @@ export default function About() {
               {/* MD Quick Badges */}
               <div className="grid grid-cols-2 gap-3 w-full max-w-[320px] mt-4">
                 <div className="bg-brand-navy/5 border border-brand-navy/10 p-2.5 rounded-xl text-center">
-                  <span className="block text-base font-bold text-brand-navy font-serif">10+ Yrs</span>
+                  <span className="block text-base font-bold text-brand-navy font-serif">13+ Yrs</span>
                   <span className="text-[10px] text-gray-500 uppercase font-semibold">Real Estate Expertise</span>
                 </div>
                 <div className="bg-brand-gold/15 border border-brand-gold/30 p-2.5 rounded-xl text-center">

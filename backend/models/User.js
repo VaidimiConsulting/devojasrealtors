@@ -60,7 +60,7 @@ const User = sequelize.define('User', {
     comment: 'ID of the associate who referred this user'
   },
   referral_commission_percent: {
-    type: DataTypes.FLOAT,
+    type: DataTypes.DECIMAL(6, 4),
     allowNull: true,
     comment: 'Fixed % this user gives to their own referrer (set by referrer at creation time)'
   },
@@ -109,7 +109,7 @@ const User = sequelize.define('User', {
     allowNull: true
   },
   commission_percent: {
-    type: DataTypes.FLOAT,
+    type: DataTypes.DECIMAL(6, 4),
     defaultValue: 5.0,
     comment: 'Current commission percentage for this associate'
   },
@@ -131,6 +131,23 @@ const User = sequelize.define('User', {
     type: DataTypes.DATE,
     allowNull: true,
     comment: 'Timestamp of the most recent successful login — shown on dashboard'
+  },
+  is_temporary_password: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false,
+    comment: 'Flag indicating password is an initial temporary credential'
+  },
+  temporary_password_expires_at: {
+    type: DataTypes.DATE,
+    allowNull: true
+  },
+  last_sms_sent_at: {
+    type: DataTypes.DATE,
+    allowNull: true
+  },
+  last_sms_status: {
+    type: DataTypes.STRING,
+    allowNull: true
   }
 }, {
   tableName: 'users'

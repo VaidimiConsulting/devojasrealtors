@@ -1,4 +1,9 @@
 {
+  "files.exclude": {
+    "**/.git": true,
+    ".vscode": true,
+    ".gitignore": true
+  },
   "css.validate": false,
   "scss.validate": false,
   "less.validate": false,

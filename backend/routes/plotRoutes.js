@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const {
   getPlots, getPlot, createPlot, updatePlot, deletePlot,
-  updatePlotApproval, toggleFeatured
+  updatePlotApproval, toggleFeatured, purchasePlot, getPlotPurchases
 } = require('../controllers/plotController');
 const { protect, authorize } = require('../middleware/auth');
 const { Plot } = require('../models');
@@ -12,21 +12,36 @@ const { Op } = require('sequelize');
 router.get('/public', async (req, res, next) => {
   try {
     const { status, location } = req.query;
-    const where = { status: { [Op.in]: ['available', 'sold'] } };
-    if (status && status !== 'all') where.status = status;
+    const eligibleStatuses = ['available', 'booked', 'sold', 'pending', 'under_negotiation', 'approved'];
+    const where = {};
+
+    if (status && status !== 'all') {
+      if (status === 'booked') {
+        where.status = { [Op.in]: ['booked', 'sold'] };
+      } else {
+        where.status = status;
+      }
+    } else {
+      where.status = { [Op.in]: eligibleStatuses };
+    }
+
     if (location) where.location = { [Op.like]: `%${location}%` };
 
     const plots = await Plot.findAll({
       where,
-      attributes: ['id', 'title', 'location', 'city', 'block', 'plot_number', 'size_sqft', 'price', 'dimensions', 'road_width', 'facing', 'is_corner', 'status', 'image_url', 'description'],
-      order: [['status', 'ASC'], ['title', 'ASC']]
+      attributes: ['id', 'plot_code', 'title', 'location', 'city', 'block', 'plot_number', 'size_sqft', 'price', 'dimensions', 'road_width', 'facing', 'is_corner', 'status', 'image_url', 'description'],
+      order: [['id', 'DESC']]
     });
     res.json({ success: true, count: plots.length, data: plots });
   } catch (err) { next(err); }
 });
 
+// Plot purchases listing — accessible by admin (all records) and associate (own records scoped in controller)
+router.get('/purchases', protect, authorize('admin', 'associate'), getPlotPurchases);
+
 router.use(protect, authorize('admin'));
 
+router.post('/purchase', purchasePlot);
 router.get('/', getPlots);
 router.post('/', createPlot);
 router.get('/:id', getPlot);

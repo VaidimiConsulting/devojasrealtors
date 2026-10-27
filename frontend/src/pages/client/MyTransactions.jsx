@@ -67,7 +67,10 @@ const MyTransactions = () => {
             ) : (
               transactions.map((tx) => (
                 <tr key={tx.id} className="border-t border-gray-100 hover:bg-gray-50">
-                  <td className="px-4 py-3 font-medium text-gray-800">{tx.plot?.title}</td>
+                  <td className="px-4 py-3">
+                    <div className="font-medium text-gray-800">{tx.plot?.title}</div>
+                    <div className="text-xs font-mono text-blue-600 font-semibold">{tx.transaction_ref || `#${tx.id}`}</div>
+                  </td>
                   <td className="px-4 py-3 text-gray-500">
                     {tx.buyer_id === user?.id ? 'Purchase' : 'Sale'}
                   </td>

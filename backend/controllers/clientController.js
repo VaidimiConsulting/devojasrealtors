@@ -5,7 +5,7 @@
  */
 const bcrypt = require('bcryptjs');
 const { Op } = require('sequelize');
-const { Plot, User, Transaction, Notification, Complaint, Wallet, Payment, EmiPlan, EmiInstallment, AppSettings } = require('../models');
+const { Plot, User, Transaction, Notification, Complaint, Wallet, Payment, EmiPlan, EmiInstallment, AppSettings, BookingForm } = require('../models');
 
 // @desc  Client's own dashboard stats
 // @route GET /api/client/dashboard-stats
@@ -340,11 +340,20 @@ async function getMyBookingPdf(req, res, next) {
 
     const plot = await Plot.findByPk(transaction.plot_id);
     const buyer = await User.findByPk(transaction.buyer_id);
+    const bookingForm = await BookingForm.findOne({
+      where: {
+        [Op.or]: [
+          { plot_id: transaction.plot_id },
+          { client_id: transaction.buyer_id }
+        ]
+      },
+      order: [['createdAt', 'DESC']]
+    });
     const emiPlan = await EmiPlan.findOne({ where: { transaction_id: transaction.id } });
     let settings = await AppSettings.findOne();
     if (!settings) settings = await AppSettings.create({});
 
-    const pdfPath = await generateBookingPdf({ transaction, plot, buyer, companySettings: settings, emiPlan });
+    const pdfPath = await generateBookingPdf({ transaction, plot, buyer, companySettings: settings, emiPlan, bookingForm });
     res.download(pdfPath, 'Plot-Booking-Details.pdf');
   } catch (error) { next(error); }
 }
@@ -367,3 +376,49 @@ async function getMyEmiSchedule(req, res, next) {
     res.json({ success: true, data: plan });
   } catch (error) { next(error); }
 }
+
+// @desc  Client downloads official payment receipt PDF for their own payment
+// @route GET /api/client/payments/:id/receipt-pdf
+async function getMyPaymentReceiptPdf(req, res, next) {
+  try {
+    const { generatePaymentReceiptPdf } = require('../services/pdfService');
+    const payment = await Payment.findByPk(req.params.id, {
+      include: [
+        {
+          model: Transaction,
+          as: 'transaction',
+          include: [
+            { model: Plot, as: 'plot', include: [{ model: require('../models').Project, as: 'project' }] },
+            { model: User, as: 'buyer' },
+            { model: User, as: 'sellerAssociate' }
+          ]
+        }
+      ]
+    });
+    if (!payment) return res.status(404).json({ success: false, message: 'Payment record not found' });
+
+    if (payment.transaction?.buyer_id !== req.user.id) {
+      return res.status(403).json({ success: false, message: 'You can only download receipts for your own payments' });
+    }
+
+    let settings = await AppSettings.findOne() || {};
+
+    const pdfPath = await generatePaymentReceiptPdf({
+      payment,
+      transaction: payment.transaction,
+      plot: payment.transaction?.plot,
+      buyer: payment.transaction?.buyer,
+      sellerAssociate: payment.transaction?.sellerAssociate,
+      companySettings: settings
+    });
+
+    res.download(pdfPath, `Receipt-${payment.receipt_no || payment.id}.pdf`);
+  } catch (error) { next(error); }
+}
+
+module.exports = {
+  getDashboardStats, getMyPlots, createMyPlot, updateMyPlot, deleteMyPlot,
+  browsePlots, getPlotDetail, getMyTransactions, updateProfile, changePassword,
+  submitKyc, getMyNotifications, markNotificationRead, createComplaint, getMyComplaints,
+  getMyReceipt, getMyEmiSchedule, getMyBookingPdf, getMyPaymentReceiptPdf
+};

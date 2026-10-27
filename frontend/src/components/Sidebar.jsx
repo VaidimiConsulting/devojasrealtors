@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from "react";
-import { NavLink } from "react-router-dom";
+import { NavLink, useLocation } from "react-router-dom";
 import {
   LayoutDashboard, Users, Home, Receipt, Percent, Wallet,
   BarChart3, Image, Headphones, Settings, LogOut, ChevronDown,
-  Network, MessageSquare, ChevronRight, Bell, FileText
+  Network, MessageSquare, ChevronRight, Bell, FileText, UserCog
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import api from "../api/axios";
@@ -12,6 +12,30 @@ const Sidebar = ({ collapsed }) => {
   const [openMenu, setOpenMenu] = useState(null);
   const { logout, user } = useAuth();
   const [pendingCount, setPendingCount] = useState(0);
+  const location = useLocation();
+
+  // Compare both pathname and query params precisely
+  const isSubActive = (subPath) => {
+    const [subPathname, subSearch] = subPath.split('?');
+    if (location.pathname !== subPathname) return false;
+    if (!subSearch) {
+      // exact pathname match with NO query params
+      return !location.search;
+    }
+    // compare each query param
+    const subParams = new URLSearchParams(subSearch);
+    const locParams = new URLSearchParams(location.search);
+    for (const [key, val] of subParams.entries()) {
+      if (locParams.get(key) !== val) return false;
+    }
+    // make sure location doesn't have extra params that would match another tab
+    // (count exact param pairs)
+    let locParamCount = 0;
+    for (const _ of locParams.entries()) locParamCount++;
+    let subParamCount = 0;
+    for (const _ of subParams.entries()) subParamCount++;
+    return locParamCount === subParamCount;
+  };
 
   useEffect(() => {
     const fetchPending = async () => {
@@ -39,18 +63,33 @@ const Sidebar = ({ collapsed }) => {
         { title: "Pending KYC", path: "/users?kyc_status=pending" },
       ]
     },
+    { title: "Add Accounts", icon: UserCog, path: "/add-accounts-user" },
     { title: "Team Network", icon: Network, path: "/network" },
     {
       title: "Plot Management", icon: Home, path: "/plots",
       sub: [
-        { title: "All Plots", path: "/plots" },
-        { title: "Pending", path: "/plots?status=pending" }
+        { title: "Plot Dashboard", path: "/plots/dashboard" },
+        { title: "Plot Inventory", path: "/plots" },
+        { title: "Add New Plot", path: "/plots/add" },
+        { title: "Plot Purchasing / Booking", path: "/plots/purchasing" },
+        { title: "All Plot Purchases", path: "/plots/purchases" },
+        { title: "Booking Applications", path: "/booking-forms" },
+        { title: "Client Details", path: "/users?role=client" },
+        { title: "Payment Plans & Installments", path: "/emi-statements" },
+        { title: "Payment Collection", path: "/payments" },
+        { title: "Receipts & Booking Documents", path: "/payments" },
+        { title: "Plot Transfer", path: "/plots/transfer" },
+        { title: "Cancellation and Refunds", path: "/plots/cancellations" },
+        { title: "Plot Purchase Audit History", path: "/plots/audit-history" }
       ]
     },
     { title: "Transactions", icon: Receipt, path: "/transactions" },
     {
-      title: "Accounts", icon: Receipt, path: "/accounts-menu",
+      title: "Accounts & Finance", icon: Receipt, path: "/accounts",
       sub: [
+        { title: "Accounts Dashboard", path: "/accounts" },
+        { title: "Commission Management & Audit", path: "/accounts/commissions" },
+        { title: "Associate Accounts Ledger", path: "/accounts/associates" },
         { title: "Daily Records", path: "/daily-records" },
         { title: "Payments & Receipts", path: "/payments" },
         { title: "EMI Statements", path: "/emi-statements" }
@@ -60,7 +99,9 @@ const Sidebar = ({ collapsed }) => {
     {
       title: "Commission / Payroll", icon: Percent, path: "/commissions",
       sub: [
-        { title: "Commission Settings", path: "/commissions" },
+        { title: "Commission Rates & Hierarchy", path: "/commissions" },
+        { title: "Commission Tracking & Payouts", path: "/accounts/commissions" },
+        { title: "Commission Slips", path: "/accounts/commission-slips" },
         { title: "Slab Settings", path: "/slabs" }
       ]
     },
@@ -166,30 +207,33 @@ const Sidebar = ({ collapsed }) => {
 
                 {openMenu === item.title && !collapsed && (
                   <div style={{ marginLeft: "16px", paddingLeft: "12px", borderLeft: "2px solid rgba(212,175,55,0.25)", marginTop: "2px", marginBottom: "4px" }}>
-                    {item.sub.map((s) => (
-                      <NavLink
-                        key={s.title}
-                        to={s.path}
-                        style={({ isActive }) => ({
-                          display: "flex", alignItems: "center", justifyContent: "space-between",
-                          padding: "8px 10px", borderRadius: "8px",
-                          color: isActive ? "#D4AF37" : "rgba(148,163,184,0.8)",
-                          background: isActive ? "rgba(212,175,55,0.1)" : "transparent",
-                          fontWeight: isActive ? 700 : 500, fontSize: "12px",
-                          textDecoration: "none", marginBottom: "1px", transition: "all 0.15s"
-                        })}
-                      >
-                        <span style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                          <ChevronRight size={10} style={{ opacity: 0.6 }} />
-                          {s.title}
-                        </span>
-                        {s.badge && (
-                          <span style={{ background: "#ef4444", color: "white", fontSize: "9px", fontWeight: 900, padding: "2px 6px", borderRadius: "20px" }}>
-                            {s.badge}
+                    {item.sub.map((s) => {
+                      const active = isSubActive(s.path);
+                      return (
+                        <NavLink
+                          key={s.title}
+                          to={s.path}
+                          style={{
+                            display: "flex", alignItems: "center", justifyContent: "space-between",
+                            padding: "8px 10px", borderRadius: "8px",
+                            color: active ? "#D4AF37" : "rgba(148,163,184,0.8)",
+                            background: active ? "rgba(212,175,55,0.1)" : "transparent",
+                            fontWeight: active ? 700 : 500, fontSize: "12px",
+                            textDecoration: "none", marginBottom: "1px", transition: "all 0.15s"
+                          }}
+                        >
+                          <span style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                            <ChevronRight size={10} style={{ opacity: 0.6 }} />
+                            {s.title}
                           </span>
-                        )}
-                      </NavLink>
-                    ))}
+                          {s.badge && (
+                            <span style={{ background: "#ef4444", color: "white", fontSize: "9px", fontWeight: 900, padding: "2px 6px", borderRadius: "20px" }}>
+                              {s.badge}
+                            </span>
+                          )}
+                        </NavLink>
+                      );
+                    })}
                   </div>
                 )}
               </>

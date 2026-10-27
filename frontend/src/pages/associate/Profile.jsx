@@ -62,6 +62,20 @@ const Profile = () => {
           <h3 className="font-semibold text-gray-800">Profile Information</h3>
         </div>
         <form onSubmit={handleProfileUpdate} className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="text-sm font-medium text-gray-700 mb-1 block">Associate ID (My ID)</label>
+              <input value={user?.login_id || user?.associateId || '—'} disabled className="input-field bg-gray-50 font-mono font-bold text-navy" />
+            </div>
+            <div>
+              <label className="text-sm font-medium text-gray-700 mb-1 block">Referred By ID (Upline ID)</label>
+              <input value={user?.referredById || user?.sponsor?.login_id || (user?.referred_by ? 'DEV-0001' : 'None (Company Root)')} disabled className="input-field bg-gray-50 font-mono font-bold text-slate-700" />
+            </div>
+          </div>
+          <div>
+            <label className="text-sm font-medium text-gray-700 mb-1 block">Referred By (Sponsor Name)</label>
+            <input value={user?.referredByName || user?.sponsor?.name || (user?.referred_by ? 'Super Admin' : 'Direct Company Root')} disabled className="input-field bg-gray-50 text-slate-700" />
+          </div>
           <div>
             <label className="text-sm font-medium text-gray-700 mb-1 block">Full Name</label>
             <input value={profileForm.name} onChange={(e) => setProfileForm({ ...profileForm, name: e.target.value })} className="input-field" />
@@ -75,8 +89,8 @@ const Profile = () => {
             <input value={profileForm.phone} onChange={(e) => setProfileForm({ ...profileForm, phone: e.target.value })} className="input-field" />
           </div>
           <div>
-            <label className="text-sm font-medium text-gray-700 mb-1 block">Referral Code</label>
-            <input value={user?.referral_code || ''} disabled className="input-field bg-gray-50 text-gray-400" />
+            <label className="text-sm font-medium text-gray-700 mb-1 block">My Referral Code</label>
+            <input value={user?.referral_code || user?.login_id || ''} disabled className="input-field bg-gray-50 text-gray-400" />
           </div>
           <button type="submit" className="btn-primary">Update Profile</button>
         </form>

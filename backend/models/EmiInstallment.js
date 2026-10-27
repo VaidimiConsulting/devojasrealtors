@@ -24,6 +24,10 @@ const EmiInstallment = sequelize.define('EmiInstallment', {
     type: DataTypes.DECIMAL(15, 2),
     allowNull: false
   },
+  paid_amount: {
+    type: DataTypes.DECIMAL(15, 2),
+    defaultValue: 0
+  },
   status: {
     type: DataTypes.ENUM('pending', 'paid', 'overdue'),
     defaultValue: 'pending'

@@ -45,7 +45,12 @@ export const AuthProvider = ({ children }) => {
             client: '/client',
             accounts: '/accounts',
           };
-          const dashboard = redirectMap[role] || '/login';
+          // Prefer the current path if it matches the user's panel (e.g. /accounts?ssoToken=...)
+          const currentPath = window.location.pathname;
+          const expectedPath = redirectMap[role] || '/login';
+          const dashboard = currentPath.startsWith(expectedPath) && currentPath !== '/login'
+            ? currentPath
+            : expectedPath;
 
           // Clean URL and redirect
           params.delete('ssoToken');

@@ -6,11 +6,14 @@ const {
   getBookingForm,
   updateBookingForm,
   deleteBookingForm,
-  updateBookingFormStatus
+  updateBookingFormStatus,
+  getAssociateDetailsAndUpline
 } = require('../controllers/bookingFormController');
 const { protect, authorize } = require('../middleware/auth');
 
 router.use(protect);
+
+router.get('/associate-details/:id', getAssociateDetailsAndUpline);
 
 router.route('/')
   .post(createBookingForm)

@@ -4,9 +4,12 @@ const generateToken = require('../utils/generateToken');
 const generateReferralCode = require('../utils/generateReferralCode');
 const { Op } = require('sequelize');
 const { sendCredentialsEmail } = require('../services/emailService');
+const { sendCredentialsSMS, cleanPhoneNumber, maskPhone } = require('../services/smsService');
+const generateNextDevId = require('../utils/generateNextDevId');
+const { registerAssociateRecord, deliverCredentials, buildResponse, RegistrationError } = require('../services/associateRegistrationService');
 
-// Helper: generate login_id like DEV-0001
-const generateLoginId = (userId) => `DEV-${String(userId).padStart(4, '0')}`;
+// Helper: generate sequential login_id like DEV-0002
+const generateLoginId = async () => await generateNextDevId();
 
 // @desc Register new user (admin creates admin, or public client signup)
 // @route POST /api/auth/register
@@ -18,7 +21,12 @@ const register = async (req, res, next) => {
       return res.status(403).json({ success: false, message: 'Admin registration is not allowed via this endpoint.' });
     }
 
-    const existingPhone = await User.findOne({ where: { phone } });
+    const validPhone = cleanPhoneNumber(phone);
+    if (!validPhone) {
+      return res.status(400).json({ success: false, message: 'Please enter a valid 10-digit mobile number' });
+    }
+
+    const existingPhone = await User.findOne({ where: { phone: validPhone } });
     if (existingPhone) {
       return res.status(400).json({ success: false, message: 'Phone number already registered' });
     }
@@ -38,6 +46,7 @@ const register = async (req, res, next) => {
       phone,
       address: address || null,
       password: hashedPassword,
+      plain_password: password,
       role: role || 'client',
       referred_by: referred_by || null,
       referral_commission_percent: referral_commission_percent || null,
@@ -50,11 +59,18 @@ const register = async (req, res, next) => {
     });
 
     // Auto-generate login_id after creation
-    const login_id = generateLoginId(user.id);
+    const login_id = await generateLoginId();
     await user.update({ login_id });
 
     // Auto create wallet for the user
     await Wallet.create({ user_id: user.id, balance: 0 });
+
+    // Send SMS credentials to the registered mobile number
+    const smsResult = await sendCredentialsSMS(validPhone, login_id, password, user.id);
+    await user.update({
+      last_sms_sent_at: new Date(),
+      last_sms_status: smsResult.success ? (smsResult.mock ? 'mock_delivered' : 'sent') : 'failed'
+    });
 
     // Send email immediately if password and email are provided
     if (user.email && password) {
@@ -80,116 +96,38 @@ const register = async (req, res, next) => {
 // @route POST /api/auth/register-associate
 const registerAssociate = async (req, res, next) => {
   try {
-    const { name, email, phone, pan_number, aadhar_number, address, password, confirm_password, sponsor_code } = req.body;
-
-    // --- Validation ---
-    if (!name || !phone) {
-      return res.status(400).json({ success: false, message: 'Name and phone number are required' });
-    }
-    if (!pan_number || !aadhar_number) {
-      return res.status(400).json({ success: false, message: 'PAN number and Aadhar number are mandatory for Associates' });
-    }
-    if (!password || password.length < 6) {
-      return res.status(400).json({ success: false, message: 'Password must be at least 6 characters' });
-    }
-    if (password !== confirm_password) {
-      return res.status(400).json({ success: false, message: 'Password and Confirm Password do not match' });
-    }
-
-    // --- Duplicate checks ---
-    const existingPhone = await User.findOne({ where: { phone } });
-    if (existingPhone) {
-      return res.status(400).json({ success: false, message: 'Phone number already registered' });
-    }
-    if (email) {
-      const existingEmail = await User.findOne({ where: { email } });
-      if (existingEmail) {
-        return res.status(400).json({ success: false, message: 'Email already registered' });
-      }
-    }
-    const existingPan = await User.findOne({ where: { pan_number } });
-    if (existingPan) {
-      return res.status(400).json({ success: false, message: 'This PAN number is already registered' });
-    }
-    const existingAadhar = await User.findOne({ where: { aadhar_number } });
-    if (existingAadhar) {
-      return res.status(400).json({ success: false, message: 'This Aadhar number is already registered' });
-    }
-
-    // --- Sponsor lookup (MANDATORY for associates) ---
-    if (!sponsor_code || !sponsor_code.trim()) {
+    const { sponsor_code } = req.body;
+    if (!sponsor_code || !String(sponsor_code).trim()) {
       return res.status(400).json({ success: false, message: 'Sponsor / Referral Code is required for Associate registration' });
     }
-    let referred_by = null;
-    let sponsorUser = null;
-    // Support both referral_code and login_id as sponsor code
-    sponsorUser = await User.findOne({
+    const raw = String(sponsor_code).trim();
+    const rawUpper = raw.toUpperCase();
+
+    const sponsorUser = await User.findOne({
       where: {
         [Op.or]: [
-          { referral_code: sponsor_code.trim() },
-          { login_id: sponsor_code.trim() }
+          { login_id: raw },
+          { login_id: rawUpper },
+          { referral_code: raw },
+          { referral_code: rawUpper }
         ],
-        role: 'associate'
+        role: { [Op.in]: ['associate', 'admin'] }
       }
     });
+
     if (!sponsorUser) {
       return res.status(400).json({ success: false, message: 'Sponsor code not found. Please check and try again.' });
     }
-    referred_by = sponsorUser.id;
 
-    // --- Create associate (pending approval) ---
-    const hashedPassword = await bcrypt.hash(password, 10);
-    const referral_code = generateReferralCode(name);
-
-    const user = await User.create({
-      name,
-      email: email || null,
-      phone,
-      address: address || null,
-      password: hashedPassword,
-      role: 'associate',
-      referred_by,
-      referral_commission_percent: 5, // default 5%
-      commission_percent: 5,
-      pan_number,
-      aadhar_number,
-      referral_code,
-      kyc_status: 'approved',
-      status: 'active'
-    });
-
-    // Auto-generate login_id after creation (DEV-XXXX)
-    const login_id = generateLoginId(user.id);
-    await user.update({ login_id });
-
-    await Wallet.create({ user_id: user.id, balance: 0 });
-
-    // Send email immediately
-    if (user.email) {
-      await sendCredentialsEmail(user, login_id, password);
+    if (sponsorUser.status !== 'active') {
+      return res.status(400).json({ success: false, message: `Sponsor "${sponsorUser.name}" is not active.` });
     }
 
-    res.status(201).json({
-      success: true,
-      message: 'Registration successful. Waiting for admin approval.',
-      user: {
-        id: user.id,
-        login_id: user.login_id,
-        name: user.name,
-        email: user.email,
-        phone: user.phone,
-        role: user.role,
-        referral_code: user.referral_code,
-        kyc_status: user.kyc_status
-      },
-      data: {
-        login_id: login_id,
-        name: user.name,
-        referral_code: user.referral_code,
-        sponsor: sponsorUser ? { name: sponsorUser.name, login_id: sponsorUser.login_id } : null
-      }
-    });
+    const { user, sponsor, password } = await registerAssociateRecord(req.body, sponsorUser.id, null);
+    const sms = await deliverCredentials(user, password);
+    res.status(201).json(buildResponse(user, sponsor, sms, 'Registration successful. Your account is ready - you can log in now.'));
   } catch (error) {
+    if (error instanceof RegistrationError) return res.status(error.status).json({ success: false, message: error.message });
     next(error);
   }
 };
@@ -198,15 +136,36 @@ const registerAssociate = async (req, res, next) => {
 // @route POST /api/auth/login
 const login = async (req, res, next) => {
   try {
-    const { email, password } = req.body; // "email" field accepts email, phone, or login_id
+    const identifier = req.body.email || req.body.identifier || req.body.login_id || req.body.phone;
+    const { password } = req.body;
+
+    if (!identifier || !password) {
+      return res.status(400).json({ success: false, message: 'Please provide email/phone/login ID and password.' });
+    }
+
+    const trimmed = String(identifier).trim();
+    const upper = trimmed.toUpperCase();
+
+    const searchConditions = [
+      { email: trimmed },
+      { phone: trimmed },
+      { login_id: trimmed },
+      { login_id: upper },
+      { referral_code: trimmed },
+      { referral_code: upper }
+    ];
+
+    // Support admin aliases/shorthand (e.g. 'admin' or 'admin@devojas.com') without changing DB credentials
+    if (trimmed.toLowerCase() === 'admin' || trimmed.toLowerCase() === 'admin@devojas.com') {
+      searchConditions.push(
+        { email: 'admin@devojasrealtors.in' },
+        { login_id: 'DEV-0001' }
+      );
+    }
 
     const user = await User.findOne({
       where: {
-        [Op.or]: [
-          { email },
-          { phone: email },
-          { login_id: email }
-        ]
+        [Op.or]: searchConditions
       }
     });
 
@@ -234,16 +193,31 @@ const login = async (req, res, next) => {
 
     const token = generateToken(user.id);
 
+    let sponsor = null;
+    if (user.referred_by) {
+      const sp = await User.findByPk(user.referred_by, {
+        attributes: ['id', 'name', 'login_id', 'phone', 'email']
+      });
+      if (sp) sponsor = { id: sp.id, name: sp.name, login_id: sp.login_id, phone: sp.phone, email: sp.email };
+    }
+
     res.json({
       success: true,
       token,
       user: {
         id: user.id,
         login_id: user.login_id,
+        associateId: user.login_id,
+        referred_by: user.referred_by,
+        referredById: sponsor ? sponsor.login_id : null,
+        referredByName: sponsor ? sponsor.name : null,
+        sponsor,
         name: user.name,
         email: user.email,
         phone: user.phone,
         role: user.role,
+        commission_percent: user.commission_percent,
+        referral_commission_percent: user.referral_commission_percent,
         referral_code: user.referral_code,
         last_login_at: user.last_login_at,
         kyc_status: user.kyc_status,
@@ -258,7 +232,26 @@ const login = async (req, res, next) => {
 // @desc Get logged in user profile
 // @route GET /api/auth/me
 const getMe = async (req, res, next) => {
-  res.json({ success: true, user: req.user });
+  try {
+    let sponsor = null;
+    if (req.user.referred_by) {
+      const sp = await User.findByPk(req.user.referred_by, {
+        attributes: ['id', 'name', 'login_id', 'phone', 'email']
+      });
+      if (sp) sponsor = { id: sp.id, name: sp.name, login_id: sp.login_id, phone: sp.phone, email: sp.email };
+    }
+    const userJson = req.user.toJSON ? req.user.toJSON() : { ...req.user };
+    delete userJson.password;
+    delete userJson.plain_password;
+    userJson.associateId = userJson.login_id;
+    userJson.referredById = sponsor ? sponsor.login_id : null;
+    userJson.referredByName = sponsor ? sponsor.name : null;
+    userJson.sponsor = sponsor;
+
+    res.json({ success: true, user: userJson });
+  } catch (error) {
+    next(error);
+  }
 };
 
 // @desc  Update logged in user profile

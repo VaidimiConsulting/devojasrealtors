@@ -43,6 +43,18 @@ export default function Navbar() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  // Lock background scroll when mobile drawer is open
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isOpen]);
+
   const navLinks = [
     { name: 'Home', path: '/' },
     { name: 'About Us', path: '/about' },
@@ -87,79 +99,84 @@ export default function Navbar() {
     <>
       <nav className={`fixed w-full z-50 transition-all duration-500 ${
         scrolled 
-          ? 'bg-white/98 backdrop-blur-md shadow-md py-2 border-b border-gray-100' 
-          : 'bg-white/95 backdrop-blur-md py-3.5 border-b border-gray-200/50'
+          ? 'bg-white/98 backdrop-blur-md shadow-md py-1.5 border-b border-gray-100' 
+          : 'bg-white/95 backdrop-blur-md py-2.5 sm:py-3 border-b border-gray-200/50'
       }`}>
         
         {/* Decorative Golden Gradient Bottom Border */}
-        <div className="absolute bottom-0 left-0 right-0 h-[2.5px] bg-[linear-gradient(90deg,#12372a,#d7a43b,#1e5b47,#d7a43b)] bg-[length:200%_100%] opacity-90 animate-shimmer" />
+        <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-[linear-gradient(90deg,#12372a,#d7a43b,#1e5b47,#d7a43b)] bg-[length:200%_100%] opacity-90 animate-shimmer" />
 
-        <div className="max-w-full mx-auto px-4 sm:px-8 lg:px-12 xl:px-16">
-          <div className="flex items-center justify-between h-16">
+        <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-10">
+          <div className="flex items-center justify-between h-16 sm:h-18">
             
-            {/* Logo & Brand Identity (Aligned Left) */}
-            <Link to="/" className="flex items-center space-x-3 group shrink-0">
+            {/* Logo & Brand Identity (Clean, High-Resolution, No Circular Ring) */}
+            <Link to="/" className="flex items-center space-x-3 sm:space-x-3.5 group shrink-0">
               <img
                 src="/assets/logo.png"
                 alt="Devojas Realtors Logo"
-                className="h-12 w-auto md:h-16 object-contain drop-shadow-md transition-transform duration-300 group-hover:scale-105"
+                className="h-12 sm:h-14 md:h-15 w-auto object-contain transition-transform duration-300 group-hover:scale-105"
               />
               <div className="flex flex-col text-left">
-                <span className="font-extrabold text-brand-navy tracking-wider text-sm md:text-base lg:text-lg font-serif leading-none">
+                <span className="font-black text-brand-navy tracking-wider text-base sm:text-lg lg:text-xl font-serif leading-none">
                   DEVOJAS REALTORS
                 </span>
-                <span className="text-[9px] md:text-[10px] text-brand-gold font-bold tracking-widest uppercase mt-0.5">
+                <span className="text-[9px] sm:text-[10px] text-brand-gold font-extrabold tracking-[0.25em] uppercase mt-1">
                   Pvt. Ltd.
                 </span>
               </div>
             </Link>
 
-            {/* Desktop Navigation Links (Centered) */}
-            <div className="hidden lg:flex items-center space-x-1 xl:space-x-2">
-              {navLinks.map((link) => (
-                <NavLink
-                  key={link.name}
-                  to={link.path}
-                  className={({ isActive }) =>
-                    `px-4 py-2 rounded-full text-xs xl:text-sm font-semibold tracking-wide transition-all duration-300 ${
-                      isActive 
-                        ? 'text-white bg-brand-navy shadow-md' 
-                        : 'text-brand-navy/80 hover:text-brand-gold hover:bg-brand-navy/5 border border-transparent'
-                    }`
-                  }
-                >
-                  {link.name}
-                </NavLink>
-              ))}
+            {/* Desktop Navigation Links (Centered, Compact & Pass-Pass) */}
+            <div className="hidden lg:flex items-center justify-center flex-1 mx-3 xl:mx-6">
+              <div className="flex items-center bg-slate-100/85 border border-slate-200/70 p-1 rounded-full shadow-inner space-x-0.5 xl:space-x-1">
+                {navLinks.map((link) => (
+                  <NavLink
+                    key={link.name}
+                    to={link.path}
+                    className={({ isActive }) =>
+                      `px-3 xl:px-3.5 py-1.5 rounded-full text-xs xl:text-[13px] font-semibold tracking-wide transition-all duration-200 whitespace-nowrap ${
+                        isActive 
+                          ? 'text-white bg-brand-navy shadow-sm font-bold' 
+                          : 'text-brand-navy/75 hover:text-brand-navy hover:bg-white/90'
+                      }`
+                    }
+                  >
+                    {link.name}
+                  </NavLink>
+                ))}
+              </div>
             </div>
 
-            {/* Action Links (Aligned Right) */}
-            <div className="hidden lg:flex items-center space-x-2 xl:space-x-3 shrink-0">
-              {/* Login / Signup (NEW) */}
+            {/* Action Links (Anchored to Right) */}
+            <div className="hidden lg:flex items-center justify-end space-x-2 xl:space-x-2.5 shrink-0">
+              {/* Login / Logout */}
               {currentUser ? (
                 <button
+                  type="button"
                   onClick={handleLogout}
-                  className="flex items-center space-x-2 text-brand-navy border border-brand-navy/20 hover:bg-brand-navy/5 px-4 py-2.5 rounded-full text-xs xl:text-sm font-bold transition-all"
+                  className="flex items-center space-x-1.5 text-brand-navy border border-brand-navy/20 hover:bg-brand-navy/5 px-3.5 py-1.5 sm:py-2 rounded-full text-xs font-bold transition-all whitespace-nowrap active:scale-95"
                 >
-                  <LogOut className="h-4 w-4" />
+                  <LogOut className="h-3.5 w-3.5" />
                   <span>Logout ({currentUser.name?.split(' ')[0]})</span>
                 </button>
               ) : (
                 <button
+                  type="button"
                   onClick={() => setIsAuthOpen(true)}
-                  className="flex items-center space-x-2 text-brand-navy border border-brand-navy/20 hover:bg-brand-navy/5 px-4 py-2.5 rounded-full text-xs xl:text-sm font-bold transition-all"
+                  className="flex items-center space-x-1.5 text-brand-navy border border-brand-navy/20 hover:bg-brand-navy/5 px-4 py-1.5 sm:py-2 rounded-full text-xs font-bold transition-all whitespace-nowrap active:scale-95"
                 >
-                  <User className="h-4 w-4" />
+                  <User className="h-3.5 w-3.5" />
                   <span>Login</span>
                 </button>
               )}
 
               {/* Enquiry Now CTA */}
               <button
+                type="button"
                 onClick={() => setIsEnquiryOpen(true)}
-                className="flex items-center space-x-2 bg-gradient-to-r from-brand-gold to-brand-goldLight hover:from-brand-goldLight hover:to-brand-gold text-brand-navy px-5 py-2.5 rounded-full text-xs xl:text-sm font-extrabold shadow-lift transition-all transform hover:-translate-y-0.5 duration-300"
+                className="flex items-center space-x-1.5 bg-gradient-to-r from-brand-gold to-brand-goldLight hover:from-brand-goldLight hover:to-brand-gold text-brand-navy px-4 xl:px-5 py-1.5 sm:py-2 rounded-full text-xs font-extrabold shadow-sm hover:shadow transition-all transform hover:-translate-y-0.5 active:scale-95 duration-200 whitespace-nowrap"
               >
-                <Phone className="h-4 w-4" />
+                <Phone className="h-3.5 w-3.5" />
                 <span>Enquiry Now</span>
               </button>
             </div>
@@ -184,99 +201,107 @@ export default function Navbar() {
 
           </div>
         </div>
+      </nav>
 
-        {/* Mobile Drawer Slide-In Panel (Light Theme matching Navbar) */}
-        <div 
-          className={`lg:hidden fixed inset-y-0 right-0 z-50 w-[85vw] max-w-sm bg-white shadow-2xl transform transition-transform duration-500 ease-in-out border-l border-brand-navy/5 ${
-            isOpen ? 'translate-x-0' : 'translate-x-full'
-          }`}
-        >
-          {/* Golden Border Left on mobile drawer */}
-          <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-gradient-to-b from-brand-gold via-yellow-400 to-brand-goldLight opacity-80" />
+      {/* Mobile Drawer Slide-In Panel (Light Theme matching Navbar, placed outside nav for true viewport fixed positioning) */}
+      <div 
+        className={`lg:hidden fixed inset-y-0 right-0 z-[70] w-[85vw] max-w-xs sm:max-w-sm bg-white shadow-2xl transform transition-transform duration-300 ease-in-out border-l border-brand-navy/10 flex flex-col ${
+          isOpen ? 'translate-x-0' : 'translate-x-full'
+        }`}
+      >
+        {/* Golden Border Left on mobile drawer */}
+        <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-gradient-to-b from-brand-gold via-yellow-400 to-brand-goldLight opacity-80" />
 
-          <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-brand-navy/10 bg-white/50">
-            <div className="flex items-center space-x-2">
-              <img src="/assets/logo.png" alt="Logo" className="h-10 w-auto object-contain" />
-              <div className="text-left">
-                <span className="text-brand-navy font-extrabold text-xs tracking-wider font-serif block">DEVOJAS REALTORS</span>
-                <span className="text-[8px] text-brand-gold font-bold uppercase tracking-widest">Varanasi</span>
-              </div>
-            </div>
-            <button 
-              onClick={() => setIsOpen(false)}
-              className="p-1.5 rounded-lg text-brand-navy hover:text-brand-gold bg-brand-navy/5 hover:bg-brand-navy/10 focus:outline-none transition-all"
-            >
-              <X className="h-6 w-6" />
-            </button>
-          </div>
-
-          <div className="px-5 py-6 space-y-2 overflow-y-auto h-[calc(100vh-80px)] pb-12">
-            {navLinks.map((link) => (
-              <NavLink
-                key={link.name}
-                to={link.path}
-                onClick={() => setIsOpen(false)}
-                className={({ isActive }) =>
-                  `block px-4 py-3.5 rounded-xl text-sm font-bold tracking-wide transition-all ${
-                    isActive 
-                      ? 'bg-gradient-to-r from-brand-gold to-yellow-500 text-brand-navy shadow-md font-extrabold' 
-                      : 'text-brand-navy hover:bg-brand-navy/5 hover:text-brand-gold'
-                  }`
-                }
-              >
-                {link.name}
-              </NavLink>
-            ))}
-            
-            <div className="pt-6 space-y-4">
-              {/* Mobile Login/Signup button (NEW) */}
-              {currentUser ? (
-                <button
-                  onClick={() => { setIsOpen(false); handleLogout(); }}
-                  className="flex items-center justify-center space-x-3 w-full border border-brand-navy/20 text-brand-navy py-3.5 rounded-xl font-bold active:scale-95 transition-all text-xs"
-                >
-                  <LogOut className="h-4.5 w-4.5" />
-                  <span>Logout ({currentUser.name?.split(' ')[0]})</span>
-                </button>
-              ) : (
-                <button
-                  onClick={() => { setIsOpen(false); setIsAuthOpen(true); }}
-                  className="flex items-center justify-center space-x-3 w-full border border-brand-navy/20 text-brand-navy py-3.5 rounded-xl font-bold active:scale-95 transition-all text-xs"
-                >
-                  <User className="h-4.5 w-4.5" />
-                  <span>Login</span>
-                </button>
-              )}
-
-              {/* Mobile Enquiry button */}
-              <button 
-                onClick={() => { setIsOpen(false); setIsEnquiryOpen(true); }}
-                className="flex items-center justify-center space-x-3 w-full bg-gradient-to-r from-brand-gold to-yellow-500 text-brand-navy py-3.5 rounded-xl font-bold hover:bg-brand-goldLight active:scale-95 transition-all text-xs shadow-lg"
-              >
-                <Phone className="h-4.5 w-4.5" />
-                <span>Enquiry Now</span>
-              </button>
-
-              <div className="bg-brand-navy/5 border border-brand-navy/10 p-4 rounded-xl flex items-center space-x-3 text-left">
-                <ShieldCheck className="h-5 w-5 text-brand-gold shrink-0" />
-                <span className="text-[9px] text-brand-navy/70">Verified residential plotting township documentation & maps.</span>
-              </div>
-              
-              <p className="text-[10px] text-center text-gray-400 pt-4">
-                © {new Date().getFullYear()} Devojas Realtors Pvt. Ltd.
-              </p>
+        {/* Drawer Header - solid background */}
+        <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-brand-navy/10 bg-white shrink-0">
+          <div className="flex items-center space-x-3">
+            <img src="/assets/logo.png" alt="Logo" className="h-10 w-auto object-contain shrink-0" />
+            <div className="text-left">
+              <span className="text-brand-navy font-black text-xs tracking-wider font-serif block leading-none">DEVOJAS REALTORS</span>
+              <span className="text-[8px] text-brand-gold font-extrabold uppercase tracking-widest mt-0.5 block">Varanasi</span>
             </div>
           </div>
+          <button 
+            type="button"
+            onClick={() => setIsOpen(false)}
+            className="p-1.5 rounded-lg text-brand-navy hover:text-brand-gold bg-brand-navy/5 hover:bg-brand-navy/10 focus:outline-none transition-all active:scale-95"
+            aria-label="Close menu"
+          >
+            <X className="h-6 w-6" />
+          </button>
         </div>
 
-        {/* Overlay backdrop for Mobile Menu */}
-        {isOpen && (
-          <div 
-            onClick={() => setIsOpen(false)}
-            className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm lg:hidden transition-all duration-300"
-          />
-        )}
-      </nav>
+        {/* Drawer Scrollable Links Container */}
+        <div className="flex-1 overflow-y-auto px-4 py-5 space-y-1.5 overscroll-contain">
+          {navLinks.map((link) => (
+            <NavLink
+              key={link.name}
+              to={link.path}
+              onClick={() => setIsOpen(false)}
+              className={({ isActive }) =>
+                `block px-4 py-3 rounded-xl text-sm font-bold tracking-wide transition-all ${
+                  isActive 
+                    ? 'bg-gradient-to-r from-brand-gold to-yellow-500 text-brand-navy shadow-md font-extrabold' 
+                    : 'text-brand-navy hover:bg-brand-navy/5 hover:text-brand-gold'
+                }`
+              }
+            >
+              {link.name}
+            </NavLink>
+          ))}
+          
+          <div className="pt-4 space-y-3">
+            {/* Mobile Login/Signup button */}
+            {currentUser ? (
+              <button
+                type="button"
+                onClick={() => { setIsOpen(false); handleLogout(); }}
+                className="flex items-center justify-center space-x-3 w-full border border-brand-navy/20 text-brand-navy py-3 rounded-xl font-bold active:scale-95 transition-all text-xs"
+              >
+                <LogOut className="h-4.5 w-4.5" />
+                <span>Logout ({currentUser.name?.split(' ')[0]})</span>
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => { setIsOpen(false); setIsAuthOpen(true); }}
+                className="flex items-center justify-center space-x-3 w-full border border-brand-navy/20 text-brand-navy py-3 rounded-xl font-bold active:scale-95 transition-all text-xs"
+              >
+                <User className="h-4.5 w-4.5" />
+                <span>Login</span>
+              </button>
+            )}
+
+            {/* Mobile Enquiry button */}
+            <button 
+              type="button"
+              onClick={() => { setIsOpen(false); setIsEnquiryOpen(true); }}
+              className="flex items-center justify-center space-x-3 w-full bg-gradient-to-r from-brand-gold to-yellow-500 text-brand-navy py-3 rounded-xl font-bold hover:bg-brand-goldLight active:scale-95 transition-all text-xs shadow-lg"
+            >
+              <Phone className="h-4.5 w-4.5" />
+              <span>Enquiry Now</span>
+            </button>
+
+            <div className="bg-brand-navy/5 border border-brand-navy/10 p-3.5 rounded-xl flex items-center space-x-3 text-left">
+              <ShieldCheck className="h-5 w-5 text-brand-gold shrink-0" />
+              <span className="text-[9px] text-brand-navy/70 leading-relaxed">Verified residential plotting township documentation & maps.</span>
+            </div>
+            
+            <p className="text-[10px] text-center text-gray-400 pt-2 pb-6">
+              © {new Date().getFullYear()} Devojas Realtors Pvt. Ltd.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Overlay backdrop for Mobile Menu (Placed outside nav with proper z-index) */}
+      {isOpen && (
+        <div 
+          onClick={() => setIsOpen(false)}
+          className="fixed inset-0 z-[60] bg-black/50 backdrop-blur-sm lg:hidden transition-opacity duration-300"
+          aria-hidden="true"
+        />
+      )}
 
       {/* ========================================================================= */}
       {/* ENQUIRY NOW POPUP MODAL */}

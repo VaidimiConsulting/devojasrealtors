@@ -53,9 +53,12 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }) {
           onAuthSuccess && onAuthSuccess(result.user);
           resetAndClose();
         } else {
-          // Associate, Admin, Accounts → redirect to admin panel with SSO
+          // Associate, Admin, Accounts → redirect to their respective panels with SSO token
           const adminPanelUrl = import.meta.env.VITE_ADMIN_PANEL_URL || 'http://localhost:5173';
-          window.location.href = `${adminPanelUrl}/?ssoToken=${result.token}`;
+          // Determine destination path based on role
+          const rolePathMap = { admin: '/', associate: '/associate', accounts: '/accounts' };
+          const destPath = rolePathMap[role] || '/';
+          window.location.href = `${adminPanelUrl}${destPath}?ssoToken=${result.token}`;
         }
       } else {
         setError(result.message || 'Login failed.');
@@ -166,19 +169,32 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }) {
                 )}
               </div>
 
-              <div className="w-full bg-amber-50 border border-amber-200 rounded-xl p-3 flex items-start gap-2 text-left">
-                <AlertCircle className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
-                <p className="text-xs text-amber-700">
-                  <strong>Important:</strong> Please save your Associate ID (<strong>{successData.login_id}</strong>). You can use this along with your password to login once admin approves your account.
+              <div className="w-full bg-emerald-50 border border-emerald-200 rounded-xl p-3 flex items-start gap-2 text-left">
+                <CheckCircle className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
+                <p className="text-xs text-emerald-800">
+                  <strong>Account Ready:</strong> Your Associate ID is <strong>{successData.login_id}</strong>. You can now log in using your Associate ID, mobile number, or email with your password.
                 </p>
               </div>
 
-              <button
-                onClick={resetAndClose}
-                className="w-full bg-brand-navy text-white font-bold py-3 rounded-xl text-sm hover:bg-brand-navyLight transition-all"
-              >
-                Close
-              </button>
+              <div className="w-full flex flex-col gap-2">
+                <button
+                  onClick={() => {
+                    setLoginForm({ identifier: successData.login_id || signupForm.phone, password: signupForm.password });
+                    setMode('login');
+                    setError('');
+                  }}
+                  className="w-full bg-brand-navy text-white font-bold py-3 rounded-xl text-sm hover:bg-brand-navyLight transition-all flex items-center justify-center gap-2"
+                >
+                  Proceed to Login
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+                <button
+                  onClick={resetAndClose}
+                  className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-2.5 rounded-xl text-xs transition-all"
+                >
+                  Close
+                </button>
+              </div>
             </div>
           )}
 

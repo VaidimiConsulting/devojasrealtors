@@ -7,6 +7,20 @@ const Transaction = sequelize.define('Transaction', {
     primaryKey: true,
     autoIncrement: true
   },
+  transaction_ref: {
+    type: DataTypes.STRING,
+    allowNull: true,
+    comment: 'Custom transaction reference identifier, e.g. TEST-SALE-001'
+  },
+  type: {
+    type: DataTypes.ENUM('sale', 'purchase'),
+    defaultValue: 'sale',
+    comment: 'Distinguishes between plot acquisition/purchase and plot customer sale'
+  },
+  notes: {
+    type: DataTypes.TEXT,
+    allowNull: true
+  },
   plot_id: {
     type: DataTypes.INTEGER,
     allowNull: false
@@ -38,7 +52,7 @@ const Transaction = sequelize.define('Transaction', {
     defaultValue: 'pending'
   },
   payment_status: {
-    type: DataTypes.ENUM('unpaid', 'paid', 'refunded'),
+    type: DataTypes.ENUM('unpaid', 'partially_paid', 'paid', 'refunded'),
     defaultValue: 'unpaid'
   },
   paid_amount: {

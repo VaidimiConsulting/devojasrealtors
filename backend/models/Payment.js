@@ -26,6 +26,22 @@ const Payment = sequelize.define('Payment', {
     type: DataTypes.STRING,
     allowNull: true
   },
+  payment_mode: {
+    type: DataTypes.STRING,
+    defaultValue: 'Cash'
+  },
+  reference_no: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
+  receipt_no: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
+  status: {
+    type: DataTypes.ENUM('pending', 'verified', 'rejected', 'refunded'),
+    defaultValue: 'verified'
+  },
   paid_on: {
     type: DataTypes.DATE,
     defaultValue: DataTypes.NOW

@@ -7,7 +7,7 @@ import ConfirmDialog from '../components/ConfirmDialog';
 import Badge from '../components/Badge';
 
 const emptyForm = {
-  title: '', description: '', location: '', city: '', size_sqft: '', price: '', owner_id: '', image_url: '',
+  title: '', location: '', city: '', size_sqft: '', price: '',
   block: '', plot_number: '', dimensions: '', road_width: '', facing: '', is_corner: false, status: 'pending'
 };
 
@@ -15,6 +15,7 @@ const emptyForm = {
 const statusOptions = [
   { value: 'pending', label: 'Pending' },
   { value: 'available', label: 'Available' },
+  { value: 'booked', label: 'Booked' },
   { value: 'under_negotiation', label: 'Under Negotiation' },
   { value: 'sold', label: 'Sold' },
   { value: 'rejected', label: 'Rejected' }
@@ -23,7 +24,6 @@ const statusOptions = [
 const Plots = () => {
   const [searchParams] = useSearchParams();
   const [plots, setPlots] = useState([]);
-  const [owners, setOwners] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
@@ -49,23 +49,14 @@ const Plots = () => {
     }
   };
 
-  const fetchOwners = async () => {
-    try {
-      const res = await api.get('/users', { params: { role: 'client' } });
-      setOwners(res.data.data);
-    } catch (err) { console.error(err); }
-  };
-
   useEffect(() => { fetchPlots(); }, [statusFilter, search]);
-  useEffect(() => { fetchOwners(); }, []);
 
   const openAddModal = () => { setEditingPlot(null); setForm(emptyForm); setError(''); setModalOpen(true); };
   const openEditModal = (plot) => {
     setEditingPlot(plot);
     setForm({
-      title: plot.title, description: plot.description || '', location: plot.location,
+      title: plot.title, location: plot.location,
       city: plot.city || '', size_sqft: plot.size_sqft, price: plot.price,
-      owner_id: plot.owner_id, image_url: plot.image_url || '',
       block: plot.block || '', plot_number: plot.plot_number || '', dimensions: plot.dimensions || '',
       road_width: plot.road_width || '', facing: plot.facing || '', is_corner: plot.is_corner || false,
       status: plot.status || 'pending'
@@ -87,7 +78,14 @@ const Plots = () => {
   };
 
   const handleDelete = async () => {
-    await api.delete(`/plots/${deleteTarget.id}`);
+    try {
+      const res = await api.delete(`/plots/${deleteTarget.id}`);
+      if (res.data.soft_deleted) {
+        alert(res.data.message);
+      }
+    } catch (err) {
+      alert(err.response?.data?.message || 'Delete failed');
+    }
     setDeleteTarget(null);
     fetchPlots();
   };
@@ -185,10 +183,6 @@ const Plots = () => {
             <label className="text-sm font-medium text-gray-700 mb-1 block">Title</label>
             <input required value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} className="input-field" />
           </div>
-          <div>
-            <label className="text-sm font-medium text-gray-700 mb-1 block">Description</label>
-            <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} className="input-field" rows={2} />
-          </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-sm font-medium text-gray-700 mb-1 block">Location</label>
@@ -208,17 +202,6 @@ const Plots = () => {
               <label className="text-sm font-medium text-gray-700 mb-1 block">Price (₹)</label>
               <input required type="number" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} className="input-field" />
             </div>
-          </div>
-          <div>
-            <label className="text-sm font-medium text-gray-700 mb-1 block">Owner (Client)</label>
-            <select required value={form.owner_id} onChange={(e) => setForm({ ...form, owner_id: e.target.value })} className="input-field">
-              <option value="">Select owner...</option>
-              {owners.map((o) => <option key={o.id} value={o.id}>{o.name} ({o.email})</option>)}
-            </select>
-          </div>
-          <div>
-            <label className="text-sm font-medium text-gray-700 mb-1 block">Image URL</label>
-            <input value={form.image_url} onChange={(e) => setForm({ ...form, image_url: e.target.value })} className="input-field" placeholder="https://..." />
           </div>
 
           {/* Website display fields — optional, used by the public marketing site */}

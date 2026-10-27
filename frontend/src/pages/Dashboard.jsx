@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import {
   Home, Users, Receipt, TrendingUp, Percent, AlertCircle, IndianRupee,
-  Activity, ArrowUpRight, Clock
+  Activity, Clock, CheckCircle
 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import api from '../api/axios';
 import StatCard from '../components/StatCard';
+
+const INR = (val) => `₹${Number(val || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}`;
 
 const Dashboard = () => {
   const [stats, setStats] = useState(null);
@@ -39,6 +41,7 @@ const Dashboard = () => {
     );
   }
 
+  // Only use customer sale transactions in the trend chart (already filtered on backend)
   const trendData = (stats?.salesTrend || []).map((s) => ({ month: s.month, revenue: parseFloat(s.total) }));
 
   return (
@@ -57,7 +60,14 @@ const Dashboard = () => {
       </div>
 
       {/* Primary Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+        <StatCard
+          title="Total Revenue (Customer Sales)"
+          value={INR(stats.totalRevenue)}
+          icon={IndianRupee}
+          color="green"
+          subtitle="Completed customer sales"
+        />
         <StatCard
           title="Total Plots"
           value={stats.totalPlots}
@@ -88,29 +98,43 @@ const Dashboard = () => {
         />
       </div>
 
-      {/* Financial Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <StatCard
-          title="Total Revenue"
-          value={`₹${Number(stats.totalRevenue).toLocaleString('en-IN')}`}
-          icon={IndianRupee}
-          color="green"
-          subtitle="Gross from completed deals"
-        />
-        <StatCard
-          title="Commission Paid"
-          value={`₹${Number(stats.totalCommissionPaid).toLocaleString('en-IN')}`}
-          icon={Percent}
-          color="gold"
-          subtitle="To associates & referrers"
-        />
-        <StatCard
-          title="Net Profit"
-          value={`₹${Number(stats.netProfit).toLocaleString('en-IN')}`}
-          icon={TrendingUp}
-          color="navy"
-          subtitle="Revenue minus commissions"
-        />
+      {/* Admin's Own Commission Breakdown */}
+      <div className="card">
+        <div className="mb-4">
+          <h3 className="font-bold text-slate-900 text-base">My Commission (Super Admin)</h3>
+          <p className="text-xs text-slate-400 mt-0.5">Your own commission rows from the commission ledger. Network-wide totals are in the Accounts panel.</p>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {/* Total Generated */}
+          <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
+            <div className="flex items-center gap-2 mb-1">
+              <Percent size={16} className="text-slate-500" />
+              <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Commission Generated</span>
+            </div>
+            <span className="text-2xl font-black text-gray-900 block">{INR(stats.commissionGenerated)}</span>
+            <span className="text-[11px] text-gray-500 block">Total accrued in ledger (pending + paid)</span>
+          </div>
+
+          {/* Commission Paid */}
+          <div className="p-4 bg-emerald-50 rounded-xl border border-emerald-200 space-y-1">
+            <div className="flex items-center gap-2 mb-1">
+              <CheckCircle size={16} className="text-emerald-600" />
+              <span className="text-xs font-bold text-emerald-800 uppercase tracking-wider">Commission Paid</span>
+            </div>
+            <span className="text-2xl font-black text-emerald-700 block">{INR(stats.totalCommissionPaid)}</span>
+            <span className="text-[11px] text-emerald-800 block">Actual money disbursed (sum of paid_amount)</span>
+          </div>
+
+          {/* Commission Pending */}
+          <div className="p-4 bg-amber-50 rounded-xl border border-amber-200 space-y-1">
+            <div className="flex items-center gap-2 mb-1">
+              <Clock size={16} className="text-amber-600" />
+              <span className="text-xs font-bold text-amber-800 uppercase tracking-wider">Commission Pending</span>
+            </div>
+            <span className="text-2xl font-black text-amber-700 block">{INR(stats.commissionPending)}</span>
+            <span className="text-[11px] text-amber-800 block">Generated − Paid (balance yet to be disbursed)</span>
+          </div>
+        </div>
       </div>
 
       {/* Sales Chart + Quick Activity */}
@@ -120,7 +144,7 @@ const Dashboard = () => {
           <div className="flex items-center justify-between mb-5">
             <div>
               <h3 className="font-bold text-slate-900 text-lg">Sales Trend</h3>
-              <p className="text-sm text-slate-400 mt-0.5">Monthly completed revenue</p>
+              <p className="text-sm text-slate-400 mt-0.5">Monthly completed customer sales only</p>
             </div>
             <div className="flex items-center gap-2 text-xs text-slate-500">
               <div className="w-3 h-3 bg-blue-600 rounded-full" />
@@ -133,7 +157,7 @@ const Dashboard = () => {
                 <TrendingUp size={24} className="text-slate-400" />
               </div>
               <p className="text-sm font-semibold text-slate-600">No sales trend data yet</p>
-              <p className="text-xs text-slate-400 mt-1">Chart will populate as completed deals close</p>
+              <p className="text-xs text-slate-400 mt-1">Chart will populate as completed customer deals close</p>
             </div>
           ) : (
             <ResponsiveContainer width="100%" height={260}>
@@ -143,7 +167,7 @@ const Dashboard = () => {
                 <YAxis fontSize={12} tickLine={false} axisLine={false} tick={{ fill: '#94a3b8' }} tickFormatter={(v) => `₹${v >= 100000 ? `${(v/100000).toFixed(1)}L` : v >= 1000 ? `${(v/1000).toFixed(0)}k` : v}`} />
                 <Tooltip
                   contentStyle={{ borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 10px 25px rgba(0,0,0,0.08)', fontSize: '13px' }}
-                  formatter={(v) => [`₹${v.toLocaleString('en-IN')}`, 'Revenue']}
+                  formatter={(v) => [INR(v), 'Revenue']}
                   cursor={{ fill: '#eff6ff' }}
                 />
                 <Bar dataKey="revenue" fill="url(#barGrad)" radius={[8, 8, 0, 0]} />
